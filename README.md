@@ -1,2 +1,4 @@
 # ComfyUI_Gradio
-Build ComfyUI workflow 不用、
+
+1. Install Dependencies:
+    pip install requests Pillow gradio numpy
