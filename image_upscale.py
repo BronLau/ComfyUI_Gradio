@@ -12,7 +12,7 @@ from utils.logger import setup_logger
 import utils
 
 # 设置日志
-logger = setup_logger("cutout-logs")
+logger = setup_logger("image-upscale-logs")
 
 
 class CutoutApp:
@@ -26,7 +26,7 @@ class CutoutApp:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # 加载工作流
-        workflow_path = Path("workflows/Cutout.json")
+        workflow_path = Path("workflows/2_Image_Upscale_TTP.json")
         with workflow_path.open('r', encoding='utf-8') as f:
             self.workflow = json.load(f)
 
@@ -36,15 +36,33 @@ class CutoutApp:
                 return utils.create_error_image(), "未上传图片"
 
             start_time = time.time()
-            logger.info("开始移除背景")
+            logger.info("开始放大图片")
 
             # 保存上传的图片
             image = Image.fromarray(input_image)
             filename = utils.save_upload_image(image, self.input_dir)
+            filepath = str(self.input_dir / filename)  # 构建完整路径
             logger.info(f"保存输入图片: {filename}, 大小: {image.size}")
 
-            # 更新工作流
-            self.workflow["79"]["inputs"]["image"] = filename
+            # 更新工作流配置
+            try:
+                # 查找并更新LoadImage节点
+                for node_id, node in self.workflow.items():
+                    if ("class_type" in node and
+                            node["class_type"] == "LoadImage"):
+                        logger.info(f"找到LoadImage节点: {node_id}")
+                        node["inputs"]["image"] = filepath  # 使用完整路径
+                        logger.info(f"已更新节点输入路径: {filepath}")
+                        break
+                else:
+                    raise ValueError("未找到LoadImage节点")
+
+                # 输出更新后的工作流配置以便调试
+                logger.debug(
+                    f"更新后的工作流配置: {json.dumps(self.workflow, indent=2)}")
+            except Exception as e:
+                logger.error(f"更新工作流配置失败: {e}")
+                return utils.create_error_image(), f"更新工作流配置失败: {str(e)}"
 
             # 获取处理前的最新图片及其修改时间
             previous_image = utils.get_latest_image(str(self.output_dir))
@@ -56,7 +74,7 @@ class CutoutApp:
                 response = requests.post(
                     self.url,
                     json={"prompt": self.workflow},
-                    timeout=Config.get("comfyui_server.timeout", 30)
+                    timeout=600  # 设置600秒超时
                 )
                 response.raise_for_status()
                 logger.info("已发送请求到ComfyUI")
@@ -65,7 +83,7 @@ class CutoutApp:
                 return utils.create_error_image(), f"ComfyUI请求失败: {str(e)}"
 
             # 等待处理结果
-            max_retries = 60
+            max_retries = 600
             retry_count = 0
 
             while retry_count < max_retries:
@@ -82,10 +100,6 @@ class CutoutApp:
                             with Image.open(latest_image_path) as img:
                                 # 创建副本以避免文件句柄问题
                                 output_image = img.copy()
-
-                                # 确保是RGBA模式以支持透明通道
-                                if output_image.mode != 'RGBA':
-                                    output_image = output_image.convert('RGBA')
 
                             process_time = time.time() - start_time
                             logger.info(f"处理完成,耗时: {process_time:.2f}秒")
@@ -132,12 +146,12 @@ def main():
             gr.Image(
                 type="pil",
                 label="处理结果",
-                format="png",  # 保持PNG格式以支持透明通道
+                format="png",
                 show_label=True
             ),
             gr.Textbox(label="处理状态")
         ],
-        title="背景移除工具",
+        title="图片放大工具",
         cache_examples=False  # 禁用示例缓存
     )
 
