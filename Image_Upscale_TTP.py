@@ -9,7 +9,7 @@ import requests
 from PIL import Image
 
 # 配置日志
-LOG_DIR = "logs"
+LOG_DIR = "image-upscale-logs"
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
@@ -51,11 +51,11 @@ def generate_image(input_image):
     try:
         if input_image is None:
             raise ValueError("未上传图片")
-        
+
         start_time = time.time()
         logging.info("开始处理新的图片请求")
 
-        with open("2_Image_Upscale_TTP.json", "r", 
+        with open("2_Image_Upscale_TTP.json", "r",
                   encoding='utf-8') as file_json:
             prompt = json.load(file_json)
 
@@ -72,7 +72,7 @@ def generate_image(input_image):
         prompt["10"]["inputs"]["image"] = image_filename
 
         previous_image = get_latest_image(OUTPUT_DIR)
-        
+
         # 发送请求到ComfyUI并等待响应
         try:
             response = requests.post(URL, json={"prompt": prompt}, timeout=30)
@@ -89,7 +89,7 @@ def generate_image(input_image):
             if latest_image and latest_image != previous_image:
                 try:
                     # 确保文件完全写入
-                    time.sleep(0.5)  
+                    time.sleep(0.5)
                     output_image = Image.open(latest_image)
                     # 转换为RGB模式避免透明通道问题
                     if output_image.mode in ('RGBA', 'LA'):
