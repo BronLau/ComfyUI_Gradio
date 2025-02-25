@@ -8,6 +8,8 @@ import gradio as gr
 import requests
 from PIL import Image
 
+import Config
+
 # 配置日志
 LOG_DIR = "image-upscale-logs"
 if not os.path.exists(LOG_DIR):
@@ -26,9 +28,16 @@ logging.basicConfig(
     ]
 )
 
-URL = "http://127.0.0.1:8188/prompt"
-INPUT_DIR = "D:\AIGC\ComfyUI\input"
-OUTPUT_DIR = "D:\AIGC\ComfyUI\output"
+# 获取配置
+URL = Config.get("comfyui_server.url")
+INPUT_DIR = Config.get("paths.input_dir")
+OUTPUT_DIR = Config.get("paths.output_dir")
+SERVER_NAME = Config.get("gradio_server.server_name")
+SERVER_PORT = Config.get("gradio_server.server_port")
+
+# 验证配置
+if not all([URL, INPUT_DIR, OUTPUT_DIR]):
+    raise ValueError("配置加载失败，请检查配置文件")
 
 
 def get_latest_image(folder):
@@ -50,10 +59,12 @@ def start_queue(prompt_workflow):
 def generate_image(input_image):
     try:
         if input_image is None:
-            raise ValueError("未上传图片")
+            # 返回错误图像而不是None
+            error_img = Image.new('RGB', (400, 200), color=(255, 255, 255))
+            return [error_img, "未上传图片"]
 
         start_time = time.time()
-        logging.info("开始处理新的图片请求")
+        logging.info("开始放大图片")
 
         with open("2_Image_Upscale_TTP.json", "r",
                   encoding='utf-8') as file_json:
@@ -64,7 +75,7 @@ def generate_image(input_image):
         timestamp = int(time.time())
         image_filename = f"input_{timestamp}.jpg"
         image_path = os.path.join(INPUT_DIR, image_filename)
-        image.save(image_path, format='JPEG', quality=95)
+        image.save(image_path, format='JPEG', quality=100)
 
         logging.info(f"保存输入图片: {image_filename}, 大小: {image.size}")
 
@@ -78,7 +89,9 @@ def generate_image(input_image):
             response = requests.post(URL, json={"prompt": prompt}, timeout=30)
             response.raise_for_status()  # 检查响应状态
         except requests.exceptions.RequestException as e:
-            raise Exception(f"ComfyUI请求失败: {str(e)}")
+            error_msg = f"ComfyUI请求失败: {str(e)}"
+            error_img = Image.new('RGB', (400, 200), color=(255, 255, 255))
+            return [error_img, error_msg]
 
         # 等待生成结果
         max_retries = 600  # 10分钟超时
@@ -100,7 +113,7 @@ def generate_image(input_image):
                     process_time = time.time() - start_time
                     logging.info(f"处理耗时: {process_time:.2f}秒")
 
-                    return output_image
+                    return [output_image, f"处理成功，耗时: {process_time:.2f}秒"]
                 except Exception as img_err:
                     logging.error(f"图片加载错误: {str(img_err)}")
                     time.sleep(1)
@@ -110,25 +123,43 @@ def generate_image(input_image):
             retry_count += 1
 
         logging.error(f"处理超时: 输入图片 {image_filename}")
-        raise TimeoutError("图像生成超时")
+        error_img = Image.new('RGB', (400, 200), color=(255, 255, 255))
+        return [error_img, "图像生成超时，请检查ComfyUI是否正常运行"]
 
     except Exception as e:
         logging.error(f"处理错误: {str(e)}")
-        return None
+        error_img = Image.new('RGB', (400, 200), color=(255, 255, 255))
+        return [error_img, f"处理错误: {str(e)}"]
 
 
 # 更新Gradio接口配置
 demo = gr.Interface(
     fn=generate_image,
-    inputs=gr.Image(type="numpy", label="输入图片"),
-    outputs=gr.Image(type="pil", label="处理结果", format="png"),  # 指定输出格式为PNG
-    title="图片放大工具",
+    inputs=gr.Image(
+        type="numpy",
+        label="输入图片",
+    ),
+    outputs=[
+        gr.Image(
+            type="pil",
+            label="处理结果",
+            format="png",
+            show_label=True
+        ),
+        gr.Textbox(label="处理状态")
+    ],
+    title="图像放大工具",
+    cache_examples=False  # 禁用示例缓存
 )
 
 
-demo.launch(
-    share=True,
-    allowed_paths=[OUTPUT_DIR],
-    server_name="127.0.0.1",
-    server_port=7860
-)
+# 启动服务器
+if __name__ == "__main__":
+    demo.launch(
+        share=True,
+        allowed_paths=[OUTPUT_DIR],
+        server_name=SERVER_NAME,
+        server_port=SERVER_PORT,
+        show_error=True,  # 显示详细错误信息
+        max_threads=1  # 限制并发处理数
+    )
