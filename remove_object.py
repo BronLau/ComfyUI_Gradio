@@ -12,10 +12,10 @@ from utils.logger import setup_logger
 import utils
 
 # 设置日志
-logger = setup_logger("image-upscale-logs")
+logger = setup_logger("remove-object-logs")
 
 
-class ImageUpscaleApp:
+class RemoveObjectApp:
     def __init__(self):
         self.url = Config.get("comfyui_server.url")
         self.input_dir = Path(Config.get("paths.input_dir"))
@@ -26,43 +26,28 @@ class ImageUpscaleApp:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # 加载工作流
-        workflow_path = Path("workflows/2_Image_Upscale_TTP.json")
+        workflow_path = Path("workflows/Remove_Object.json")
         with workflow_path.open('r', encoding='utf-8') as f:
             self.workflow = json.load(f)
 
-    def process_image(self, input_image) -> Tuple[Image.Image, str]:
+    def process_image(self, input_image,
+                      text_input: str) -> Tuple[Image.Image, str]:
         try:
             if input_image is None:
                 return utils.create_error_image(), "未上传图片"
 
             start_time = time.time()
-            logger.info("开始放大图片")
+            logger.info("开始移除背景")
+            logger.info(f"用户输入文本: {text_input}")
 
             # 保存上传的图片
             image = Image.fromarray(input_image)
             filename = utils.save_upload_image(image, self.input_dir)
-            filepath = str(self.input_dir / filename)  # 构建完整路径
             logger.info(f"保存输入图片: {filename}, 大小: {image.size}")
 
-            # 更新工作流配置
-            try:
-                # 查找并更新LoadImage节点
-                for node_id, node in self.workflow.items():
-                    if ("class_type" in node and
-                            node["class_type"] == "LoadImage"):
-                        logger.info(f"找到LoadImage节点: {node_id}")
-                        node["inputs"]["image"] = filepath  # 使用完整路径
-                        logger.info(f"已更新节点输入路径: {filepath}")
-                        break
-                else:
-                    raise ValueError("未找到LoadImage节点")
-
-                # 输出更新后的工作流配置以便调试
-                logger.debug(
-                    f"更新后的工作流配置: {json.dumps(self.workflow, indent=2)}")
-            except Exception as e:
-                logger.error(f"更新工作流配置失败: {e}")
-                return utils.create_error_image(), f"更新工作流配置失败: {str(e)}"
+            # 更新工作流
+            self.workflow["36"]["inputs"]["image"] = filename
+            self.workflow["146"]["inputs"]["text_input"] = text_input
 
             # 获取处理前的最新图片及其修改时间
             previous_image = utils.get_latest_image(str(self.output_dir))
@@ -74,7 +59,7 @@ class ImageUpscaleApp:
                 response = requests.post(
                     self.url,
                     json={"prompt": self.workflow},
-                    timeout=600  # 设置600秒超时
+                    timeout=Config.get("comfyui_server.timeout", 30)
                 )
                 response.raise_for_status()
                 logger.info("已发送请求到ComfyUI")
@@ -83,7 +68,7 @@ class ImageUpscaleApp:
                 return utils.create_error_image(), f"ComfyUI请求失败: {str(e)}"
 
             # 等待处理结果
-            max_retries = 600
+            max_retries = 60
             retry_count = 0
 
             while retry_count < max_retries:
@@ -100,6 +85,10 @@ class ImageUpscaleApp:
                             with Image.open(latest_image_path) as img:
                                 # 创建副本以避免文件句柄问题
                                 output_image = img.copy()
+
+                                # 确保是RGBA模式以支持透明通道
+                                if output_image.mode != 'RGBA':
+                                    output_image = output_image.convert('RGBA')
 
                             process_time = time.time() - start_time
                             logger.info(f"处理完成,耗时: {process_time:.2f}秒")
@@ -132,26 +121,34 @@ def main():
     global demo  # 声明全局变量
 
     # 创建应用实例
-    app = ImageUpscaleApp()
+    app = RemoveObjectApp()
 
     # 创建Gradio界面
     demo = gr.Interface(
         fn=app.process_image,
-        inputs=gr.Image(
-            type="numpy",
-            label="输入图片",
-            sources=["upload"]
-        ),
+        inputs=[
+            gr.Image(
+                type="numpy",
+                label="输入图片",
+                sources=["upload"]
+            ),
+            gr.Textbox(
+                label="要移除的物体描述",
+                placeholder="例如：watch, text, table等",
+                value=""
+            )
+        ],
         outputs=[
             gr.Image(
                 type="pil",
                 label="处理结果",
-                format="png",
+                format="png",  # 保持PNG格式以支持透明通道
                 show_label=True
             ),
             gr.Textbox(label="处理状态")
         ],
-        title="图片放大工具",
+        title="物体移除工具",
+        description="上传图片并输入要移除的物体描述",
         cache_examples=False  # 禁用示例缓存
     )
 

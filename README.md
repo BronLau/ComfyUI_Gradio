@@ -14,7 +14,8 @@ ComfyUI_Gradio/
 │   ├── Cutout.json
 │   └── 2_Image_Upscale_TTP.json
 ├── cutout.py
-└── image_upscale.py
+├── image_upscale.py
+└── README.md
 
 1. Install Dependencies:
     pip install requests Pillow gradio numpy
