@@ -79,8 +79,10 @@ class ImageUpscaleApp:
                 response.raise_for_status()
                 logger.info("已发送请求到ComfyUI")
             except requests.exceptions.RequestException as e:
-                logger.error(f"ComfyUI请求失败: {e}")
-                return utils.create_error_image(), f"ComfyUI请求失败: {str(e)}"
+                error_msg = f"ComfyUI请求失败: {e}"
+                logger.error(error_msg)
+                self.ding.send_message(error_msg, e)
+                return utils.create_error_image(), error_msg
 
             # 等待处理结果
             max_retries = 600
@@ -121,11 +123,14 @@ class ImageUpscaleApp:
                     logger.info(f"等待处理结果: {retry_count}/{max_retries}")
 
             logger.error("处理超时")
+            self.ding.send_message("处理超时")
             return utils.create_error_image(), "处理超时"
 
         except Exception as e:
-            logger.error(f"处理失败: {e}")
-            return utils.create_error_image(), f"处理失败: {str(e)}"
+            error_msg = f"处理失败: {str(e)}"
+            logger.error(error_msg)
+            self.ding.send_message(error_msg, e)
+            return utils.create_error_image(), error_msg
 
 
 def main():

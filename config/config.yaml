@@ -5,8 +5,8 @@ comfyui_server:
 
 # 文件路径配置
 paths:
-  input_dir: "D:/AIGC/ComfyUI/input"
-  output_dir: "D:/AIGC/ComfyUI/output"
+  input_dir: "{REPLEASE_YOUR_COMFYUI_INPUT_DIR}"
+  output_dir: "{REPLEASE_YOUR_COMFYUI_OUTPUT_DIR}"
 
 # Gradio服务器配置
 gradio_server:
@@ -15,3 +15,9 @@ gradio_server:
   image_upscale_server_port: 7870
   remove_object_server_port: 7880
   share: true
+
+# 钉钉推送配置
+dingtalk:
+  enabled: true
+  webhook: "{REPLEASE_YOUR_WEBHOOK_ADDRESS}"
+  secret: "{REPLEASE_YOUR_SECRET}"

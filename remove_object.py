@@ -10,6 +10,7 @@ from typing import Tuple
 from config import Config
 from utils.logger import setup_logger
 import utils
+from utils import DingTalkBot
 
 # 设置日志
 logger = setup_logger("remove-object-logs")
@@ -29,6 +30,9 @@ class RemoveObjectApp:
         workflow_path = Path("workflows/Remove_Object.json")
         with workflow_path.open('r', encoding='utf-8') as f:
             self.workflow = json.load(f)
+
+        # 初始化钉钉机器人
+        self.ding = DingTalkBot()
 
     def process_image(self, input_image,
                       text_input: str) -> Tuple[Image.Image, str]:
@@ -64,8 +68,10 @@ class RemoveObjectApp:
                 response.raise_for_status()
                 logger.info("已发送请求到ComfyUI")
             except requests.exceptions.RequestException as e:
-                logger.error(f"ComfyUI请求失败: {e}")
-                return utils.create_error_image(), f"ComfyUI请求失败: {str(e)}"
+                error_msg = f"ComfyUI请求失败: {e}"
+                logger.error(error_msg)
+                self.ding.send_message(error_msg, e)
+                return utils.create_error_image(), error_msg
 
             # 等待处理结果
             max_retries = 6000
@@ -110,11 +116,14 @@ class RemoveObjectApp:
                     logger.info(f"等待处理结果: {retry_count}/{max_retries}")
 
             logger.error("处理超时")
+            self.ding.send_message("处理超时")
             return utils.create_error_image(), "处理超时"
 
         except Exception as e:
-            logger.error(f"处理失败: {e}")
-            return utils.create_error_image(), f"处理失败: {str(e)}"
+            error_msg = f"处理失败: {str(e)}"
+            logger.error(error_msg)
+            self.ding.send_message(error_msg, e)
+            return utils.create_error_image(), error_msg
 
 
 def main():
