@@ -74,7 +74,7 @@ class ImageUpscaleApp:
                 response = requests.post(
                     self.url,
                     json={"prompt": self.workflow},
-                    timeout=600  # 设置600秒超时
+                    timeout=6000  # 设置6000秒超时
                 )
                 response.raise_for_status()
                 logger.info("已发送请求到ComfyUI")
@@ -85,7 +85,7 @@ class ImageUpscaleApp:
                 return utils.create_error_image(), error_msg
 
             # 等待处理结果
-            max_retries = 600
+            max_retries = 6000
             retry_count = 0
 
             while retry_count < max_retries:
