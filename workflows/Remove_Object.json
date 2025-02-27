@@ -1,7 +1,7 @@
 {
   "36": {
     "inputs": {
-      "image": "10_TTP_2-黑盘.jpg",
+      "image": "穿着卡其色西装外套和白色 T 恤的年轻男性，佩戴银色表带黑色表盘手表，室内米色背景，正面半身像，简约现代风格.jpeg",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -111,7 +111,7 @@
   },
   "47": {
     "inputs": {
-      "expand": 8,
+      "expand": 16,
       "tapered_corners": true,
       "mask": [
         "46",
@@ -306,7 +306,7 @@
   },
   "59": {
     "inputs": {
-      "seed": 457052441352327,
+      "seed": 766125322387116,
       "steps": 7,
       "cfg": 1.4000000000000001,
       "sampler_name": "dpmpp_sde",
@@ -375,7 +375,7 @@
   },
   "115": {
     "inputs": {
-      "seed": 324885530656717,
+      "seed": 619848141250043,
       "steps": 7,
       "cfg": 1.4000000000000001,
       "sampler_name": "dpmpp_sde",
@@ -429,7 +429,7 @@
       "num_beams": 3,
       "do_sample": true,
       "output_mask_select": "",
-      "seed": 154309728403079,
+      "seed": 520826173208065,
       "image": [
         "49",
         0
@@ -457,7 +457,7 @@
   },
   "146": {
     "inputs": {
-      "text_input": "bag",
+      "text_input": "watch",
       "task": "caption_to_phrase_grounding",
       "fill_mask": true,
       "keep_model_loaded": false,
@@ -465,7 +465,7 @@
       "num_beams": 3,
       "do_sample": true,
       "output_mask_select": "",
-      "seed": 896690193760074,
+      "seed": 565595028733605,
       "image": [
         "36",
         0
@@ -559,12 +559,12 @@
           {
             "name": "A",
             "selected": true,
-            "url": "/api/view?filename=rgthree.compare._temp_eyeqv_00001_.png&type=temp&subfolder=&rand=0.974146635231367"
+            "url": "/api/view?filename=rgthree.compare._temp_eyeqv_00049_.png&type=temp&subfolder=&rand=0.4426726875411422"
           },
           {
             "name": "B",
             "selected": true,
-            "url": "/api/view?filename=rgthree.compare._temp_eyeqv_00002_.png&type=temp&subfolder=&rand=0.9339467757907214"
+            "url": "/api/view?filename=rgthree.compare._temp_eyeqv_00050_.png&type=temp&subfolder=&rand=0.285345247242331"
           }
         ]
       },

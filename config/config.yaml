@@ -11,5 +11,7 @@ paths:
 # Gradio服务器配置
 gradio_server:
   server_name: "127.0.0.1"
-  server_port: 7860
+  cutout_server_port: 7860
+  image_upscale_server_port: 7870
+  remove_object_server_port: 7880
   share: true

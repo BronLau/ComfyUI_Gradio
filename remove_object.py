@@ -59,7 +59,7 @@ class RemoveObjectApp:
                 response = requests.post(
                     self.url,
                     json={"prompt": self.workflow},
-                    timeout=Config.get("comfyui_server.timeout", 30)
+                    timeout=Config.get("comfyui_server.timeout", 3000)
                 )
                 response.raise_for_status()
                 logger.info("已发送请求到ComfyUI")
@@ -68,7 +68,7 @@ class RemoveObjectApp:
                 return utils.create_error_image(), f"ComfyUI请求失败: {str(e)}"
 
             # 等待处理结果
-            max_retries = 60
+            max_retries = 6000
             retry_count = 0
 
             while retry_count < max_retries:
@@ -156,7 +156,7 @@ def main():
     demo.launch(
         share=Config.get("gradio_server.share"),
         server_name=Config.get("gradio_server.server_name"),
-        server_port=Config.get("gradio_server.server_port"),
+        server_port=Config.get("gradio_server.remove_object_port"),
         allowed_paths=[str(app.input_dir), str(app.output_dir)],
         show_error=True,
         max_threads=1  # 限制并发处理数
