@@ -9,6 +9,7 @@ from typing import Tuple
 
 from config import Config
 from utils.logger import setup_logger
+from utils import DingTalkBot
 import utils
 
 # 设置日志
@@ -29,6 +30,9 @@ class ImageUpscaleApp:
         workflow_path = Path("workflows/2_Image_Upscale_TTP.json")
         with workflow_path.open('r', encoding='utf-8') as f:
             self.workflow = json.load(f)
+
+        # 初始化钉钉机器人
+        self.ding = DingTalkBot()
 
     def process_image(self, input_image) -> Tuple[Image.Image, str]:
         try:
