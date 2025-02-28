@@ -111,7 +111,7 @@
   },
   "47": {
     "inputs": {
-      "expand": 16,
+      "expand": 14,
       "tapered_corners": true,
       "mask": [
         "46",
@@ -123,19 +123,6 @@
       "title": "GrowMask"
     }
   },
-  "48": {
-    "inputs": {
-      "dilation": 10,
-      "mask": [
-        "46",
-        0
-      ]
-    },
-    "class_type": "ImpactDilateMask",
-    "_meta": {
-      "title": "Dilate Mask"
-    }
-  },
   "49": {
     "inputs": {
       "image": [
@@ -143,7 +130,7 @@
         0
       ],
       "mask": [
-        "48",
+        "47",
         0
       ]
     },
@@ -306,7 +293,7 @@
   },
   "59": {
     "inputs": {
-      "seed": 766125322387116,
+      "seed": 1052002201028924,
       "steps": 7,
       "cfg": 1.4000000000000001,
       "sampler_name": "dpmpp_sde",
@@ -375,7 +362,7 @@
   },
   "115": {
     "inputs": {
-      "seed": 619848141250043,
+      "seed": 1096104588076944,
       "steps": 7,
       "cfg": 1.4000000000000001,
       "sampler_name": "dpmpp_sde",
@@ -429,7 +416,7 @@
       "num_beams": 3,
       "do_sample": true,
       "output_mask_select": "",
-      "seed": 520826173208065,
+      "seed": 254304917481291,
       "image": [
         "49",
         0
@@ -465,7 +452,7 @@
       "num_beams": 3,
       "do_sample": true,
       "output_mask_select": "",
-      "seed": 565595028733605,
+      "seed": 814257004223467,
       "image": [
         "36",
         0
@@ -559,12 +546,12 @@
           {
             "name": "A",
             "selected": true,
-            "url": "/api/view?filename=rgthree.compare._temp_eyeqv_00049_.png&type=temp&subfolder=&rand=0.4426726875411422"
+            "url": "/api/view?filename=rgthree.compare._temp_bvzpc_00093_.png&type=temp&subfolder=&rand=0.5837309341139107"
           },
           {
             "name": "B",
             "selected": true,
-            "url": "/api/view?filename=rgthree.compare._temp_eyeqv_00050_.png&type=temp&subfolder=&rand=0.285345247242331"
+            "url": "/api/view?filename=rgthree.compare._temp_bvzpc_00094_.png&type=temp&subfolder=&rand=0.18382089490921372"
           }
         ]
       },

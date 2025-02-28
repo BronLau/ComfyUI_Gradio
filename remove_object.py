@@ -41,7 +41,7 @@ class RemoveObjectApp:
                 return utils.create_error_image(), "未上传图片"
 
             start_time = time.time()
-            logger.info("开始移除背景")
+            logger.info("开始移除物体")
             logger.info(f"用户输入文本: {text_input}")
 
             # 保存上传的图片
