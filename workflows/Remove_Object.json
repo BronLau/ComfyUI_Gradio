@@ -111,7 +111,7 @@
   },
   "47": {
     "inputs": {
-      "expand": 14,
+      "expand": 12,
       "tapered_corners": true,
       "mask": [
         "46",

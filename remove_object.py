@@ -30,12 +30,18 @@ class RemoveObjectApp:
         workflow_path = Path("workflows/Remove_Object.json")
         with workflow_path.open('r', encoding='utf-8') as f:
             self.workflow = json.load(f)
+            self.default_expand = (
+                self.workflow.get("47", {})
+                .get("inputs", {})
+                .get("expand", 12)
+            )
 
         # 初始化钉钉机器人
         self.ding = DingTalkBot()
 
     def process_image(self, input_image,
-                      text_input: str) -> Tuple[Image.Image, str]:
+                      text_input: str,
+                      expand: float) -> Tuple[Image.Image, str]:
         try:
             if input_image is None:
                 return utils.create_error_image(), "未上传图片"
@@ -43,6 +49,7 @@ class RemoveObjectApp:
             start_time = time.time()
             logger.info("开始移除物体")
             logger.info(f"用户输入文本: {text_input}")
+            logger.info(f"扩展遮罩值: {expand}")
 
             # 保存上传的图片
             image = Image.fromarray(input_image)
@@ -52,6 +59,8 @@ class RemoveObjectApp:
             # 更新工作流
             self.workflow["36"]["inputs"]["image"] = filename
             self.workflow["146"]["inputs"]["text_input"] = text_input
+            # 更新扩展遮罩值
+            self.workflow["47"]["inputs"]["expand"] = float(expand)
 
             # 获取处理前的最新图片及其修改时间
             previous_image = utils.get_latest_image(str(self.output_dir))
@@ -145,6 +154,14 @@ def main():
                 label="要移除的物体描述",
                 placeholder="例如：watch, text, table等",
                 value=""
+            ),
+            gr.Slider(
+                minimum=0,
+                maximum=24,
+                value=app.default_expand,  # 使用工作流中的默认值
+                step=1,
+                label="遮罩扩展值",
+                info="调整遮罩扩展范围 (0 到 24)"
             )
         ],
         outputs=[

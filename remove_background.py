@@ -13,10 +13,10 @@ from utils import DingTalkBot
 import utils
 
 # 设置日志
-logger = setup_logger("cutout-logs")
+logger = setup_logger("rmbg-logs")
 
 
-class CutoutApp:
+class RmbgApp:
     def __init__(self):
         self.url = Config.get("comfyui_server.url")
         self.input_dir = Path(Config.get("paths.input_dir"))
@@ -27,20 +27,28 @@ class CutoutApp:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # 加载工作流
-        workflow_path = Path("workflows/Cutout.json")
+        workflow_path = Path("workflows/BRIA_RMBG_2.0.json")
         with workflow_path.open('r', encoding='utf-8') as f:
             self.workflow = json.load(f)
+            self.default_mask_offset = (
+                self.workflow.get("8", {})
+                .get("inputs", {})
+                .get("mask_offset", 0)
+            )
 
         # 初始化钉钉机器人
         self.ding = DingTalkBot()
 
-    def process_image(self, input_image) -> Tuple[Image.Image, str]:
+    def process_image(
+        self, input_image, mask_offset: float
+    ) -> Tuple[Image.Image, str]:
         try:
             if input_image is None:
                 return utils.create_error_image(), "未上传图片"
 
             start_time = time.time()
             logger.info("开始移除背景")
+            logger.info(f"mask_offset: {mask_offset}")
 
             # 保存上传的图片
             image = Image.fromarray(input_image)
@@ -48,7 +56,8 @@ class CutoutApp:
             logger.info(f"保存输入图片: {filename}, 大小: {image.size}")
 
             # 更新工作流
-            self.workflow["79"]["inputs"]["image"] = filename
+            self.workflow["7"]["inputs"]["mask_offset"] = mask_offset
+            self.workflow["8"]["inputs"]["image"] = filename
 
             # 获取处理前的最新图片及其修改时间
             previous_image = utils.get_latest_image(str(self.output_dir))
@@ -127,16 +136,26 @@ def main():
     global demo  # 声明全局变量
 
     # 创建应用实例
-    app = CutoutApp()
+    app = RmbgApp()
 
     # 创建Gradio界面
     demo = gr.Interface(
         fn=app.process_image,
-        inputs=gr.Image(
-            type="numpy",
-            label="输入图片",
-            sources=["upload"]
-        ),
+        inputs=[
+            gr.Image(
+                type="numpy",
+                label="输入图片",
+                sources=["upload"]
+            ),
+            gr.Slider(
+                minimum=-10,
+                maximum=10,
+                value=app.default_mask_offset,  # 使用工作流中的默认值
+                step=0.1,
+                label="遮罩偏移量（像素收缩）",
+                info="调整遮罩边缘的偏移量 (-10 到 10)"
+            )
+        ],
         outputs=[
             gr.Image(
                 type="pil",
@@ -154,7 +173,7 @@ def main():
     demo.launch(
         share=Config.get("gradio_server.share"),
         server_name=Config.get("gradio_server.server_name"),
-        server_port=Config.get("gradio_server.cutout_server_port"),
+        server_port=Config.get("gradio_server.rmbg_server_port"),
         allowed_paths=[str(app.input_dir), str(app.output_dir)],
         show_error=True,
         max_threads=1  # 限制并发处理数
