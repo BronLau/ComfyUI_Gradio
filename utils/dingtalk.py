@@ -4,63 +4,66 @@ import hashlib
 import base64
 import urllib.parse
 import requests
-from typing import Optional
 from config import Config
 
 
 class DingTalkBot:
     def __init__(self):
-        self.enabled = Config.get("dingtalk.enabled", False)
         self.webhook = Config.get("dingtalk.webhook")
         self.secret = Config.get("dingtalk.secret")
 
-    def _get_sign(self) -> tuple:
-        """生成钉钉签名"""
-        timestamp = str(round(time.time() * 1000))
-        secret_enc = self.secret.encode('utf-8')
-        string_to_sign = '{}\n{}'.format(timestamp, self.secret)
-        string_to_sign_enc = string_to_sign.encode('utf-8')
-        hmac_code = hmac.new(secret_enc, string_to_sign_enc,
-                             digestmod=hashlib.sha256).digest()
-        sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
-        return timestamp, sign
-
-    def send_message(self, msg: str,
-                     error: Optional[Exception] = None) -> bool:
-        """发送消息到钉钉群"""
-        if not self.enabled:
-            return False
-
+    def send_message(self, content: str, error: Exception = None):
+        """发送普通消息或错误消息"""
         try:
-            timestamp, sign = self._get_sign()
-            webhook = f"{self.webhook}&timestamp={timestamp}&sign={sign}"
+            timestamp = str(round(time.time() * 1000))
+            sign = self._calculate_sign(timestamp)
 
             headers = {'Content-Type': 'application/json'}
 
-            # 使用 markdown 格式构建消息
-            data = {
-                "msgtype": "markdown",
-                "markdown": {
-                    "title": "ComfyUI错误告警",
-                    "text": (
-                        "### ComfyUI错误告警 🚨\n\n"
-                        "> **时间：**<font color=#f77c25>" +
-                        time.strftime('%Y-%m-%d %H:%M:%S') + "</font>\n\n"
-                        "---\n"
-                        "#### 📌 错误信息\n"
-                        f"<font color=#ff0000>{msg}</font>\n\n"
-                        "#### 🔍 错误详情\n"
-                        f"```\n{str(error) if error else '无'}\n```\n"
-                    )
-                },
-                "at": {
-                    "isAtAll": True
+            # 根据是否有error参数决定消息类型
+            if error:
+                # 错误消息使用红色标记
+                message = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "title": "ComfyUI 错误告警",
+                        "text": (
+                            "### ComfyUI 错误告警 🚨\n\n"
+                            "> **时间：**<font color=#f77c25>" +
+                            time.strftime('%Y-%m-%d %H:%M:%S') + "</font>\n\n"
+                            "---\n"
+                            "#### 📌 错误详情\n"
+                            f"```\n{str(error) if error else '无'}\n```\n"
+                        )
+                    },
+                    "at": {
+                        "isAtAll": True
+                    }
                 }
-            }
+            else:
+                # 统计报告使用普通格式
+                message = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "title": "4090 ComfyUI 使用统计",
+                        "text": content
+                    }
+                }
 
-            response = requests.post(webhook, json=data, headers=headers)
-            return response.status_code == 200
-
+            url = f"{self.webhook}&timestamp={timestamp}&sign={sign}"
+            response = requests.post(url, headers=headers, json=message)
+            response.raise_for_status()
         except Exception as e:
             print(f"钉钉消息发送失败: {e}")
-            return False
+
+    def _calculate_sign(self, timestamp: str) -> str:
+        """计算签名"""
+        string_to_sign = f"{timestamp}\n{self.secret}"
+        hmac_code = hmac.new(
+            self.secret.encode('utf-8'),
+            string_to_sign.encode('utf-8'),
+            digestmod=hashlib.sha256
+        ).digest()
+        return urllib.parse.quote_plus(
+            base64.b64encode(hmac_code).decode('utf-8')
+        )

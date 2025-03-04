@@ -14,6 +14,7 @@ gradio_server:
   rmbg_server_port: 7860
   image_upscale_server_port: 7870
   remove_object_server_port: 7880
+  image_extend_server_port: 7890
   share: true
 
 # 钉钉推送配置
