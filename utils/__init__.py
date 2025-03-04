@@ -6,7 +6,7 @@ from .stats import UsageStats
 
 __all__ = [
     'get_latest_image',
-    'create_error_image', 
+    'create_error_image',
     'save_upload_image',
     'setup_logger',
     'DingTalkBot',
