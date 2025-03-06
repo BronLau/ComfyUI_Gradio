@@ -1,0 +1,12 @@
+# Python 核心依赖
+gradio>=4.0.0  # Web UI 框架
+Pillow>=10.0.0  # 图像处理
+numpy>=1.24.0  # 数值计算
+requests>=2.31.0  # HTTP 请求
+PyYAML>=6.0.1  # YAML 配置文件处理
+psutil>=5.9.0  # 进程和系统监控
+schedule>=1.2.0  # 任务调度
+
+# Python 开发依赖
+typing-extensions>=4.8.0  # 类型提示支持
+python-dotenv>=1.0.0  # 环境变量管理
