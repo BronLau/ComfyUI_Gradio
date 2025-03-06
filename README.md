@@ -1,4 +1,4 @@
-# 基于 Gradio 开发的 ComfyUI 图像处理工具集
+# ComfyUI_Gradio 图像处理工具集
 
 <div align="center">
 
