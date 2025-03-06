@@ -30,6 +30,11 @@ class ServiceManager:
                 "port": 7880
             },
             {
+                "name": "手动蒙版物体移除",
+                "script": "manual_remove_object.py",
+                "port": 7881
+            },
+            {
                 "name": "图片扩展",
                 "script": "image_extend.py",
                 "port": 7890
