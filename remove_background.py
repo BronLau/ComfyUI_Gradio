@@ -80,7 +80,7 @@ class RmbgApp:
                 return utils.create_error_image(), error_msg
 
             # 等待处理结果
-            max_retries = 60
+            max_retries = 6000
             retry_count = 0
 
             while retry_count < max_retries:
