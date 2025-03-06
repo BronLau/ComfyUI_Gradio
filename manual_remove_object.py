@@ -105,7 +105,12 @@ class RemoveObjectApp:
                 response.raise_for_status()
                 logger.info("已发送请求到 ComfyUI")
             except requests.exceptions.RequestException as e:
-                error_msg = f"ComfyUI请求失败: {e}"
+                error_msg = (
+                    f"ComfyUI请求失败\n"
+                    f"输入文件: {combined_filename}\n"
+                    f"错误信息: {str(e)}\n"
+                    f"遮罩扩展值: {expand}"
+                )
                 logger.error(error_msg)
                 self.ding.send_message(error_msg, e)
                 return utils.create_error_image(), error_msg
@@ -148,8 +153,15 @@ class RemoveObjectApp:
                 if retry_count % 10 == 0:
                     logger.info(f"等待处理结果: {retry_count}/{max_retries}")
 
-            logger.error("处理超时")
-            self.ding.send_message("处理超时")
+            error_msg = (
+                f"处理超时\n"
+                f"输入文件: {combined_filename}\n"
+                f"已等待: {retry_count}秒\n"
+                f"最后检查的输出路径: {str(self.output_dir)}\n"
+                f"遮罩扩展值: {expand}"
+            )
+            logger.error(error_msg)
+            self.ding.send_message(error_msg)
             return utils.create_error_image(), "处理超时"
 
         except Exception as e:
