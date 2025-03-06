@@ -7,6 +7,7 @@ comfyui_server:
 paths:
   input_dir: "{REPLEASE_YOUR_COMFYUI_INPUT_DIR}"
   output_dir: "{REPLEASE_YOUR_COMFYUI_OUTPUT_DIR}"
+  clipspace_dir: "{REPLEASE_YOUR_COMFYUI_CLIPSPACE_DIR}"
 
 # Gradio服务器配置
 gradio_server:
