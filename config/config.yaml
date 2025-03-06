@@ -5,9 +5,8 @@ comfyui_server:
 
 # 文件路径配置
 paths:
-  input_dir: "D:/AIGC/ComfyUI/input"
-  output_dir: "D:/AIGC/ComfyUI/output"
-  clipspace_dir: "D:/AIGC/ComfyUI/input/clipspace"
+  input_dir: "{REPLEASE_YOUR_COMFYUI_INPUT_DIR}"
+  output_dir: "{REPLEASE_YOUR_COMFYUI_OUTPUT_DIR}"
 
 # Gradio服务器配置
 gradio_server:
