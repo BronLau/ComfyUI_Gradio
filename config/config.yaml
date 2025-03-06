@@ -5,8 +5,9 @@ comfyui_server:
 
 # 文件路径配置
 paths:
-  input_dir: "{REPLEASE_YOUR_COMFYUI_INPUT_DIR}"
-  output_dir: "{REPLEASE_YOUR_COMFYUI_OUTPUT_DIR}"
+  input_dir: "D:/AIGC/ComfyUI/input"
+  output_dir: "D:/AIGC/ComfyUI/output"
+  clipspace_dir: "D:/AIGC/ComfyUI/input/clipspace"
 
 # Gradio服务器配置
 gradio_server:
@@ -14,6 +15,7 @@ gradio_server:
   rmbg_server_port: 7860
   image_upscale_server_port: 7870
   remove_object_server_port: 7880
+  manual_remove_object_server_port: 7881
   image_extend_server_port: 7890
   share: true
 

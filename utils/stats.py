@@ -20,6 +20,7 @@ class UsageStats:
             "image-extend-logs": "image-extend",
             "image-upscale-logs": "image-upscale",
             "remove-object-logs": "remove-object",
+            "manual-remove-object-logs": "manual-remove-object",
             "rmbg-logs": "rmbg"
         }
 
@@ -28,6 +29,7 @@ class UsageStats:
             "image-extend": "图片扩展",
             "image-upscale": "图片放大",
             "remove-object": "物体移除",
+            "manual-remove-object": "手动蒙版物体移除",
             "rmbg": "背景移除"
         }
 
