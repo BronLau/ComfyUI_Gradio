@@ -1,6 +1,12 @@
 import logging
+import sys
 from pathlib import Path
 from datetime import datetime
+
+# 确保 Windows 环境下的标准输出使用 UTF-8
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
 
 
 def setup_logger(name: str, log_dir: str = "logs",

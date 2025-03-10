@@ -46,8 +46,11 @@ class RmbgApp:
             if input_image is None:
                 return utils.create_error_image(), "未上传图片"
 
+            # 生成唯一请求ID
+            request_id = f"rmbg_{int(time.time()*1000)}_{os.getpid()}"
+
             start_time = time.time()
-            logger.info("开始移除背景")
+            logger.info(f"开始移除背景 [请求ID: {request_id}]")
             logger.info(f"mask_offset: {mask_offset}")
 
             # 保存上传的图片
@@ -55,14 +58,11 @@ class RmbgApp:
             filename = utils.save_upload_image(image, self.input_dir)
             logger.info(f"保存输入图片: {filename}, 大小: {image.size}")
 
-            # 更新工作流
+            # 更新工作流参数
             self.workflow["7"]["inputs"]["mask_offset"] = mask_offset
             self.workflow["8"]["inputs"]["image"] = filename
-
-            # 获取处理前的最新图片及其修改时间
-            previous_image = utils.get_latest_image(str(self.output_dir))
-            previous_time = os.path.getmtime(
-                previous_image) if previous_image else 0
+            # 设置SaveImage节点的filename_prefix参数
+            self.workflow["10"]["inputs"]["filename_prefix"] = request_id
 
             # 发送请求到ComfyUI
             try:
@@ -72,10 +72,11 @@ class RmbgApp:
                     timeout=Config.get("comfyui_server.timeout", 30)
                 )
                 response.raise_for_status()
-                logger.info("已发送请求到ComfyUI")
+                logger.info(f"已发送请求到ComfyUI [请求ID: {request_id}]")
             except requests.exceptions.RequestException as e:
                 error_msg = (
                     f"ComfyUI请求失败\n"
+                    f"请求ID: {request_id}\n"
                     f"输入文件: {filename}\n"
                     f"错误信息: {str(e)}\n"
                     f"mask_offset值: {mask_offset}"
@@ -90,33 +91,31 @@ class RmbgApp:
 
             while retry_count < max_retries:
                 try:
-                    latest_image_path = utils.get_latest_image(
-                        str(self.output_dir))
-                    if latest_image_path:
-                        current_time = os.path.getmtime(latest_image_path)
-                        if current_time > previous_time:
-                            # 确保文件写入完成
-                            time.sleep(0.5)
+                    # 查找以请求ID为前缀的输出文件
+                    output_files = list(
+                        self.output_dir.glob(f"{request_id}*.png"))
+                    if output_files:
+                        output_path = output_files[0]
+                        # 确保文件写入完成
+                        time.sleep(0.5)
 
-                            # 使用上下文管理器安全地打开和处理图片
-                            with Image.open(latest_image_path) as img:
-                                # 创建副本以避免文件句柄问题
-                                output_image = img.copy()
+                        with Image.open(output_path) as img:
+                            output_image = img.copy()
+                            if output_image.mode != 'RGBA':
+                                output_image = output_image.convert('RGBA')
 
-                                # 确保是RGBA模式以支持透明通道
-                                if output_image.mode != 'RGBA':
-                                    output_image = output_image.convert('RGBA')
+                        process_time = time.time() - start_time
+                        logger.info(
+                            f"处理完成 [请求ID: {request_id}], "
+                            f"耗时: {process_time:.2f}秒")
+                        logger.info(f"输出图片: {output_path}")
+                        logger.info(f"图片模式: {output_image.mode}")
+                        logger.info(f"图片大小: {output_image.size}")
 
-                            process_time = time.time() - start_time
-                            logger.info(f"处理完成,耗时: {process_time:.2f}秒")
-                            logger.info(f"输出图片: {latest_image_path}")
-                            logger.info(f"图片模式: {output_image.mode}")
-                            logger.info(f"图片大小: {output_image.size}")
-
-                            return output_image, "处理成功"
+                        return output_image, "处理成功"
 
                 except Exception as e:
-                    logger.error(f"图片加载失败: {e}")
+                    logger.error(f"图片加载失败 [请求ID: {request_id}]: {e}")
                     time.sleep(1)
                     retry_count += 1
                     continue
@@ -124,7 +123,9 @@ class RmbgApp:
                 time.sleep(1)
                 retry_count += 1
                 if retry_count % 10 == 0:
-                    logger.info(f"等待处理结果: {retry_count}/{max_retries}")
+                    logger.info(
+                        f"等待处理结果 [请求ID: {request_id}]: "
+                        f"{retry_count}/{max_retries}")
 
             error_msg = (
                 f"处理超时\n"

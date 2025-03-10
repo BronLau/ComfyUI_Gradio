@@ -50,7 +50,8 @@ class UsageStats:
 
     def analyze_log_file(self, file_path: Path) -> int:
         """分析单个日志文件中的处理次数"""
-        success_pattern = re.compile(r"处理完成,耗时:")
+        # 修改匹配模式以适应实际日志格式
+        success_pattern = re.compile(r"处理完成 \[请求ID: .+?\], 耗时: ")
         count = 0
 
         try:
@@ -58,7 +59,7 @@ class UsageStats:
                 for line in f:
                     if success_pattern.search(line):
                         count += 1
-            self.logger.debug(f"分析日志文件 {file_path.name}: 处理次数 {count}")
+                self.logger.debug(f"分析日志文件 {file_path.name}: 处理次数 {count}")
         except Exception as e:
             self.logger.error(f"读取日志文件失败: {e}")
 

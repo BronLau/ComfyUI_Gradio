@@ -47,8 +47,11 @@ class RemoveObjectApp:
             if 'layers' not in input_data or not input_data['layers']:
                 return utils.create_error_image(), "请先绘制要移除的区域"
 
+            # 生成唯一请求ID
+            request_id = f"manual_rmobj_{int(time.time()*1000)}_{os.getpid()}"
+
             start_time = time.time()
-            logger.info("开始移除物体")
+            logger.info(f"开始手动移除物体 [请求ID: {request_id}]")
             logger.info(f"扩展遮罩值: {expand}")
 
             # 获取原图和蒙版图像
@@ -69,33 +72,28 @@ class RemoveObjectApp:
 
             # 修改：创建合成图像，将蒙版区域设为透明
             combined_image = background.copy()
-            combined_image.putalpha(255)  # 首先使整个图像不透明
+            combined_image.putalpha(255)
             alpha = combined_image.split()[3]
             alpha = Image.composite(
                 Image.new('L', background.size, 0), alpha, mask_image)
             combined_image.putalpha(alpha)
 
             # 保存合成后的图片（用于传递给ComfyUI）
-            timestamp = str(int(time.time() * 1000))
-            combined_filename = f"combined-{timestamp}.png"
+            combined_filename = f"{request_id}_combined.png"
             combined_path = self.clipspace_dir / combined_filename
-
             combined_image.save(combined_path)
-            logger.info(f"保存合并后的图片: {combined_path}")
+            logger.info(f"保存合并后的图片 [请求ID: {request_id}]: {combined_path}")
 
             # 更新工作流中的路径和参数
             clipspace_relative = "clipspace"
-            workflow_combined_path = (f"{clipspace_relative}/"
-                                      f"{combined_filename}")
+            workflow_combined_path = (
+                f"{clipspace_relative}/{combined_filename}")
             self.workflow["36"]["inputs"]["image"] = workflow_combined_path
             self.workflow["47"]["inputs"]["expand"] = float(expand)
+            # 设置SaveImage节点的filename_prefix参数
+            self.workflow["154"]["inputs"]["filename_prefix"] = request_id
 
-            # 获取处理前的最新图片及其修改时间
-            previous_image = utils.get_latest_image(str(self.output_dir))
-            previous_time = os.path.getmtime(
-                previous_image) if previous_image else 0
-
-            # 发送请求到 ComfyUI 服务端
+            # 发送请求到ComfyUI
             try:
                 response = requests.post(
                     self.url,
@@ -103,11 +101,12 @@ class RemoveObjectApp:
                     timeout=Config.get("comfyui_server.timeout", 3000)
                 )
                 response.raise_for_status()
-                logger.info("已发送请求到 ComfyUI")
+                logger.info(f"已发送请求到ComfyUI [请求ID: {request_id}]")
             except requests.exceptions.RequestException as e:
                 error_msg = (
                     f"ComfyUI请求失败\n"
-                    f"输入文件: {combined_filename}\n"
+                    f"请求ID: {request_id}\n"
+                    f"合并图片: {combined_filename}\n"
                     f"错误信息: {str(e)}\n"
                     f"遮罩扩展值: {expand}"
                 )
@@ -121,29 +120,31 @@ class RemoveObjectApp:
 
             while retry_count < max_retries:
                 try:
-                    latest_image_path = utils.get_latest_image(
-                        str(self.output_dir))
-                    if latest_image_path:
-                        current_time = os.path.getmtime(latest_image_path)
-                        if current_time > previous_time:
-                            # 确保文件写入完成后加载图片
-                            time.sleep(0.5)
+                    # 查找以请求ID为前缀的输出文件
+                    output_files = list(
+                        self.output_dir.glob(f"{request_id}*.png"))
+                    if output_files:
+                        output_path = output_files[0]
+                        # 确保文件写入完成
+                        time.sleep(0.5)
 
-                            with Image.open(latest_image_path) as img:
-                                output_image = img.copy()
-                                if output_image.mode != 'RGBA':
-                                    output_image = output_image.convert('RGBA')
+                        with Image.open(output_path) as img:
+                            output_image = img.copy()
+                            if output_image.mode != 'RGBA':
+                                output_image = output_image.convert('RGBA')
 
-                            process_time = time.time() - start_time
-                            logger.info(f"处理完成,耗时: {process_time:.2f}秒")
-                            logger.info(f"输出图片: {latest_image_path}")
-                            logger.info(f"图片模式: {output_image.mode}")
-                            logger.info(f"图片大小: {output_image.size}")
+                        process_time = time.time() - start_time
+                        logger.info(
+                            f"处理完成 [请求ID: {request_id}], "
+                            f"耗时: {process_time:.2f}秒")
+                        logger.info(f"输出图片: {output_path}")
+                        logger.info(f"图片模式: {output_image.mode}")
+                        logger.info(f"图片大小: {output_image.size}")
 
-                            return output_image, "处理成功"
+                        return output_image, "处理成功"
 
                 except Exception as e:
-                    logger.error(f"图片加载失败: {e}")
+                    logger.error(f"图片加载失败 [请求ID: {request_id}]: {e}")
                     time.sleep(1)
                     retry_count += 1
                     continue
@@ -151,11 +152,14 @@ class RemoveObjectApp:
                 time.sleep(1)
                 retry_count += 1
                 if retry_count % 10 == 0:
-                    logger.info(f"等待处理结果: {retry_count}/{max_retries}")
+                    logger.info(
+                        f"等待处理结果 [请求ID: {request_id}]: "
+                        f"{retry_count}/{max_retries}")
 
             error_msg = (
                 f"处理超时\n"
-                f"输入文件: {combined_filename}\n"
+                f"请求ID: {request_id}\n"
+                f"合并图片: {combined_filename}\n"
                 f"已等待: {retry_count}秒\n"
                 f"最后检查的输出路径: {str(self.output_dir)}\n"
                 f"遮罩扩展值: {expand}"
