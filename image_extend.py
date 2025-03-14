@@ -219,8 +219,15 @@ def main():
                 )
                 status_text = gr.Textbox(label="处理状态")
 
+        # 添加校验函数，检查扩展内容描述是否已填写
+        def validate_and_process(image, text, left, top, right, bottom):
+            if text is None or text.strip() == "":
+                gr.Warning("请输入扩展内容描述后再开始处理！")
+                return None, "请输入扩展内容描述"
+            return app.process_image(image, text, left, top, right, bottom)
+
         process_btn.click(
-            fn=app.process_image,
+            fn=validate_and_process,
             inputs=[
                 input_image,
                 text_input,
