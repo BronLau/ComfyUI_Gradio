@@ -15,30 +15,46 @@ class ServiceManager:
         self.services: Dict[str, subprocess.Popen] = {}
         self.service_configs = [
             {
-                "name": "背景移除",
-                "script": "remove_background.py",
-                "port": 7860
+                "name": "集成应用",
+                "script": "integrated_app.py",
+                "port": 7856
             },
-            {
-                "name": "图片放大",
-                "script": "image_upscale.py",
-                "port": 7870
-            },
-            {
-                "name": "物体移除",
-                "script": "remove_object.py",
-                "port": 7880
-            },
-            {
-                "name": "手动蒙版物体移除",
-                "script": "manual_remove_object.py",
-                "port": 7881
-            },
-            {
-                "name": "图片扩展",
-                "script": "image_extend.py",
-                "port": 7890
-            },
+            # 以下为独立服务，如果需要单独启动可以取消注释
+            # {
+            #     "name": "背景移除",
+            #     "script": "remove_background.py",
+            #     "port": 7860
+            # },
+            # {
+            #     "name": "图片放大",
+            #     "script": "image_upscale.py",
+            #     "port": 7870
+            # },
+            # {
+            #     "name": "物体移除",
+            #     "script": "remove_object.py",
+            #     "port": 7880
+            # },
+            # {
+            #     "name": "手动蒙版物体移除",
+            #     "script": "manual_remove_object.py",
+            #     "port": 7881
+            # },
+            # {
+            #     "name": "图片扩展",
+            #     "script": "image_extend.py",
+            #     "port": 7890
+            # },
+            # {
+            #     "name": "局部重绘",
+            #     "script": "fill_repaint.py",
+            #     "port": 7891
+            # },
+            # {
+            #     "name": "物体替换",
+            #     "script": "fill_replace.py",
+            #     "port": 7892
+            # },
             {
                 "name": "使用统计",
                 "script": "daily_stats.py",

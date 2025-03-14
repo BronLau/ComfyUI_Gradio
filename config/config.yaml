@@ -17,6 +17,9 @@ gradio_server:
   remove_object_server_port: 7880
   manual_remove_object_server_port: 7881
   image_extend_server_port: 7890
+  fill_repaint_server_port: 7891
+  fill_replace_server_port: 7892
+  integrated_app_port: 7899
   share: true
 
 # 钉钉推送配置
