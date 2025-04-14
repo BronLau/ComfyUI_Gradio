@@ -1,0 +1,32 @@
+# ComfyUI服务器配置
+comfyui_server:
+  url: "http://127.0.0.1:8188/prompt"  # ComfyUI API地址
+  timeout: 30  # 请求超时时间(秒)
+
+# 文件路径配置
+paths:
+  input_dir: "D:/ComfyUI/input"  # ComfyUI输入目录
+  output_dir: "D:/ComfyUI/output"  # ComfyUI输出目录
+  clipspace_dir: "D:/ComfyUI/input/clipspace"  # ComfyUI剪贴板目录
+
+# Gradio服务器配置
+gradio_server:
+  server_name: "127.0.0.1"  # 服务器地址，使用0.0.0.0可以从外部访问
+  rmbg_server_port: 7860  # 背景移除服务端口
+  image_upscale_server_port: 7870  # 图片放大服务端口
+  remove_object_server_port: 7880  # 物体移除服务端口
+  manual_remove_object_server_port: 7881  # 手动蒙版物体移除服务端口
+  image_extend_server_port: 7890  # 图片扩展服务端口
+  fill_repaint_server_port: 7891  # 局部重绘服务端口
+  fill_replace_server_port: 7892  # 物体替换服务端口
+  integrated_app_port: 7899  # 集成应用端口
+  share: false  # 是否共享到公网（使用Gradio提供的临时URL）
+
+# 钉钉推送配置
+dingtalk:
+  # 是否启用钉钉推送，设置为true启用，false禁用
+  enabled: false
+  # 钉钉机器人的webhook地址，从钉钉开放平台获取
+  webhook: "https://oapi.dingtalk.com/robot/send?access_token=your_access_token"
+  # 安全设置的签名密钥，从钉钉开放平台获取
+  secret: "your_secret_key"
