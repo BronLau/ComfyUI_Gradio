@@ -30,3 +30,14 @@ dingtalk:
   webhook: "https://oapi.dingtalk.com/robot/send?access_token=your_access_token"
   # 安全设置的签名密钥，从钉钉开放平台获取
   secret: "your_secret_key"
+
+# 统计服务配置
+stats:
+  # 是否启用统计服务，设置为true启用，false禁用
+  enabled: true
+  # 每日报告发送时间（24小时制格式，如"17:30"）
+  report_time: "17:30"
+  # 发送失败重试次数
+  retry_count: 3
+  # 重试间隔时间（秒）
+  retry_delay: 60

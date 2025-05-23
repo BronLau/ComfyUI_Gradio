@@ -12,6 +12,14 @@ if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
     sys.stderr.reconfigure(encoding='utf-8')
 
+# 导入路径辅助工具
+from comfyui_gradio.utils.path_helper import setup_project_path, get_logs_dir
+
+# 设置项目路径
+setup_project_path()
+
+# 日志文件的标准格式
+LOG_FILENAME_FORMAT = "{service_name}_{date}.log"
 
 # 日志文件的最大大小（字节）
 # 10MB
@@ -28,64 +36,63 @@ LOG_RETENTION_DAYS = 30
 # 日志存档目录
 ARCHIVE_DIR = "logs/archive"
 
+# 全局日志管理器实例
+_log_manager = None
+
 
 def get_log_manager():
-    """
-    动态导入 log_manager.py 并返回 LogManager 实例
-    """
-    try:
-        # 获取项目根目录
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-        log_manager_path = os.path.join(root_dir, 'scripts', 'log_manager.py')
+    """获取LogManager实例"""
+    global _log_manager
+    if _log_manager is None:
+        try:
+            # 获取项目根目录
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+            log_manager_path = os.path.join(root_dir, 'scripts', 'log_manager.py')
 
-        # 动态导入 log_manager.py
-        spec = importlib.util.spec_from_file_location("log_manager", log_manager_path)
-        log_manager_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(log_manager_module)
+            # 动态导入 log_manager.py
+            spec = importlib.util.spec_from_file_location("log_manager", log_manager_path)
+            log_manager_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(log_manager_module)
 
-        # 创建 LogManager 实例
-        return log_manager_module.LogManager(
-            log_dir='logs',
-            max_size_mb=MAX_LOG_SIZE // (1024 * 1024),  # 转换为 MB
-            max_days=LOG_RETENTION_DAYS
-        )
-    except Exception as e:
-        print(f"导入 log_manager.py 失败: {e}")
-        return None
+            # 创建 LogManager 实例
+            _log_manager = log_manager_module.LogManager(
+                log_dir='logs',
+                max_size_mb=MAX_LOG_SIZE // (1024 * 1024),  # 转换为 MB
+                max_days=LOG_RETENTION_DAYS
+            )
+        except Exception as e:
+            print(f"导入 log_manager.py 失败: {e}")
+            _log_manager = None
+    
+    return _log_manager
 
 
-def clean_old_logs(log_dir: str = "logs",
-                   retention_days: int = LOG_RETENTION_DAYS) -> None:
-    """
-    清理超过保留天数的日志文件
-
-    Args:
-        log_dir: 日志文件目录
-        retention_days: 日志保留天数
-    """
-    # 使用 log_manager.py 中的机制
+def clean_old_logs():
+    """清理旧日志文件（委托给LogManager）"""
     log_manager = get_log_manager()
     if log_manager:
         try:
             removed_count = log_manager.clean_old_logs()
             print(f"清理旧日志文件完成，共删除 {removed_count} 个文件")
+            return removed_count
         except Exception as e:
             print(f"清理旧日志文件失败: {e}")
     else:
-        # 如果无法导入 log_manager.py，则使用原来的机制
+        # 使用原来的清理机制，简化代码，只保留主要功能
         try:
-            log_dir_path = Path(log_dir)
+            log_dir_path = get_logs_dir()
             if not log_dir_path.exists():
-                return
+                return 0
 
             # 计算删除日期的时间戳
-            cutoff_date = datetime.now() - timedelta(days=retention_days)
+            cutoff_date = datetime.now() - timedelta(days=LOG_RETENTION_DAYS)
             cutoff_timestamp = cutoff_date.timestamp()
 
             # 创建存档目录（如果不存在）
             archive_dir = Path(ARCHIVE_DIR)
             archive_dir.mkdir(parents=True, exist_ok=True)
 
+            removed_count = 0
             # 遍历日志目录中的所有文件
             for file_path in log_dir_path.glob("*.log*"):
                 # 如果是当天的日志文件，跳过
@@ -102,173 +109,95 @@ def clean_old_logs(log_dir: str = "logs",
                     try:
                         shutil.move(str(file_path), str(archive_path))
                         print(f"已将过期日志文件 {file_path.name} 移动到存档目录")
+                        removed_count += 1
                     except Exception as e:
                         print(f"移动日志文件失败: {e}")
+            
+            return removed_count
         except Exception as e:
             print(f"清理旧日志文件失败: {e}")
+            return 0
 
 
-def compress_archive_logs(archive_dir: str = ARCHIVE_DIR) -> None:
-    """
-    压缩存档目录中的日志文件
-
-    Args:
-        archive_dir: 存档目录
-    """
-    # 使用 log_manager.py 中的机制
+def compress_logs():
+    """压缩日志文件（委托给LogManager）"""
     log_manager = get_log_manager()
     if log_manager:
         try:
-            log_manager.compress_logs()
-            print("压缩存档日志完成")
+            compressed_count = log_manager.compress_logs()
+            print(f"压缩存档日志完成，共压缩 {compressed_count} 个文件")
+            return compressed_count
         except Exception as e:
             print(f"压缩存档日志失败: {e}")
+            return 0
     else:
-        # 如果无法导入 log_manager.py，则使用原来的机制
-        try:
-            archive_path = Path(archive_dir)
-            if not archive_path.exists():
-                return
+        print("未找到LogManager，跳过压缩日志")
+        return 0
 
-            # 按月份对日志文件进行分组
-            monthly_logs = {}
 
-            for file_path in archive_path.glob("*.log*"):
-                # 尝试从文件名中提取日期
-                try:
-                    # 假设文件名格式为 name_YYYYMMDD.log
-                    date_part = file_path.stem.split('_')[-1]
-                    if len(date_part) == 8 and date_part.isdigit():
-                        year_month = date_part[:6]  # YYYYMM
-                        if year_month not in monthly_logs:
-                            monthly_logs[year_month] = []
-                        monthly_logs[year_month].append(file_path)
-                except Exception:
-                    # 如果无法从文件名中提取日期，跳过该文件
-                    continue
-
-            # 对每个月份的日志文件进行压缩
-            for year_month, files in monthly_logs.items():
-                # 如果该月份的压缩文件已存在，跳过
-                zip_file = archive_path / f"logs_{year_month}.zip"
-                if zip_file.exists():
-                    continue
-
-                # 创建一个临时目录来存放要压缩的文件
-                temp_dir = archive_path / f"temp_{year_month}"
-                temp_dir.mkdir(exist_ok=True)
-
-                # 复制文件到临时目录
-                for file_path in files:
-                    try:
-                        shutil.copy2(str(file_path), str(
-                            temp_dir / file_path.name))
-                    except Exception as e:
-                        print(f"复制文件失败: {e}")
-                        continue
-
-                # 压缩临时目录
-                try:
-                    shutil.make_archive(
-                        str(zip_file.with_suffix('')), 'zip', str(temp_dir))
-                    print(f"已创建压缩文件: {zip_file}")
-
-                    # 删除原始文件
-                    for file_path in files:
-                        try:
-                            os.remove(str(file_path))
-                        except Exception as e:
-                            print(f"删除文件失败: {e}")
-                except Exception as e:
-                    print(f"压缩文件失败: {e}")
-
-                # 删除临时目录
-                try:
-                    shutil.rmtree(str(temp_dir))
-                except Exception as e:
-                    print(f"删除临时目录失败: {e}")
-        except Exception as e:
-            print(f"压缩存档日志失败: {e}")
+def run_log_maintenance():
+    """执行日志维护（委托给LogManager）"""
+    log_manager = get_log_manager()
+    if log_manager:
+        return log_manager.run_maintenance()
+    else:
+        # 简单执行清理和压缩
+        clean_old_logs()
+        compress_logs()
+        return True
 
 
 def setup_logger(name: str, log_dir: str = "logs",
                  level: int = logging.INFO,
                  max_bytes: int = MAX_LOG_SIZE,
                  backup_count: int = BACKUP_COUNT) -> logging.Logger:
-    """
-    配置日志记录器，支持日志轮转
-
-    Args:
-        name: 日志记录器名称
-        log_dir: 日志文件目录
-        level: 日志级别
-        max_bytes: 日志文件的最大大小（字节）
-        backup_count: 日志文件的最大备份数量
-    Returns:
-        logging.Logger对象
-    """
-    # 使用 log_manager.py 中的机制进行日志维护
-    log_manager = get_log_manager()
-    if log_manager:
-        try:
-            # 运行日志维护任务
-            log_manager.run_maintenance()
-        except Exception as e:
-            print(f"日志维护失败: {e}")
-    else:
-        # 如果无法导入 log_manager.py，则使用原来的机制
-        # 清理旧日志文件
-        clean_old_logs(log_dir)
-
-        # 压缩存档日志
-        compress_archive_logs()
-
+    """配置日志记录器，支持日志轮转，使用标准化的文件名格式"""
     # 创建日志目录
     log_dir = Path(log_dir)
-    log_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(exist_ok=True)
 
-    # 获取或创建logger
     logger = logging.getLogger(name)
-
-    # 如果logger已经有处理器，说明已经配置过，直接返回
-    if logger.handlers:
-        return logger
-
-    # 设置日志级别
     logger.setLevel(level)
 
-    # 创建日期目录
-    today = datetime.now()
-    date_str = today.strftime('%Y-%m-%d')
-    date_dir = log_dir / date_str
-    date_dir.mkdir(exist_ok=True)
+    # 清除现有的处理器
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
 
-    # 创建日志文件路径，使用当前日期作为后缀
-    log_file = date_dir / f"{name}_{today:%Y%m%d}.log"
+    # 控制台处理器
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(console_handler)
 
-    # 创建格式化器
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    # 生成标准格式的日志文件名
+    date_str = datetime.now().strftime("%Y%m%d")
+    log_filename = LOG_FILENAME_FORMAT.format(
+        service_name=name,
+        date=date_str
     )
+    log_path = log_dir / log_filename
 
-    # 创建并配置日志轮转文件处理器
+    # 文件处理器
     file_handler = logging.handlers.RotatingFileHandler(
-        log_file,
+        log_path,
         maxBytes=max_bytes,
         backupCount=backup_count,
         encoding='utf-8'
     )
-    file_handler.setFormatter(formatter)
-
-    # 创建并配置控制台处理器
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-
-    # 添加处理器到logger
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-
-    # 防止日志向上传递
-    logger.propagate = False
 
     return logger
+
+# 保留原函数用于向后兼容
+def compress_archive_logs(archive_dir: str = ARCHIVE_DIR) -> None:
+    """
+    压缩存档目录中的日志文件
+    
+    已废弃，请使用compress_logs()函数
+    
+    Args:
+        archive_dir: 存档目录
+    """
+    return compress_logs()

@@ -13,6 +13,7 @@ from typing import Dict, Optional, Tuple
 from comfyui_gradio.config import Config
 from comfyui_gradio.utils.logger import setup_logger
 from comfyui_gradio.utils.error_reporter import ErrorReporter
+from comfyui_gradio.utils.stats import UsageStats
 
 
 logger = setup_logger("services")
@@ -25,6 +26,8 @@ class ServiceManager:
         self.services: Dict[str, subprocess.Popen] = {}
         # 服务状态字典，键为服务名称，值为(上次检查时间, 重启次数, 是否健康)
         self.service_status: Dict[str, Tuple[datetime, int, bool]] = {}
+        # 初始化统计服务
+        self.stats_service = UsageStats()
         # 服务配置列表
         self.service_configs = [
             {
@@ -72,11 +75,6 @@ class ServiceManager:
                 "name": "集成应用",
                 "script": "comfyui_gradio/app.py",
                 "port": Config.get("gradio_server.integrated_app_port", 7899)
-            },
-            {
-                "name": "每日统计",
-                "script": "scripts/daily_stats.py",
-                "port": None
             }
         ]
 
@@ -181,7 +179,62 @@ class ServiceManager:
             script_name = config["script"].replace("/", "_")
             log_file = Path('logs') / f'{script_name}.log'
 
-            # 使用 subprocess.CREATE_NO_WINDOW 替代 CREATE_NEW_CONSOLE
+            # 特殊处理集成应用
+            if service_name == "集成应用" and config["script"] == "comfyui_gradio/app.py":
+                # 导入集成应用模块
+                import importlib.util
+                import importlib.machinery
+                
+                # 动态导入app模块
+                try:
+                    spec = importlib.util.spec_from_file_location(
+                        "app_module", config["script"])
+                    app_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(app_module)
+                    
+                    # 启动集成应用，指定非独立模式
+                    import threading
+                    app_thread = threading.Thread(
+                        target=app_module.launch_app,
+                        # 非独立模式，避免重复启动统计服务
+                        kwargs={"is_standalone": False},
+                        daemon=True
+                    )
+                    app_thread.start()
+                    
+                    # 创建模拟进程对象
+                    import types
+                    process = types.SimpleNamespace()
+                    process.pid = -1  # 模拟PID
+                    # 模拟poll方法，总是返回None表示进程在运行
+                    process.poll = lambda: None
+                    process.terminate = lambda: None  # 模拟terminate方法
+                    process.kill = lambda: None  # 模拟kill方法
+                    
+                    # 存储服务进程
+                    self.services[service_name] = process
+                    
+                    # 初始化服务状态
+                    restart_count = 0
+                    if is_restart and service_name in self.service_status:
+                        # 如果是重启，保留原来的重启计数
+                        restart_count = self.service_status[service_name][1] + 1
+
+                    current_time = datetime.now()
+                    status = (current_time, restart_count, True)
+                    self.service_status[service_name] = status
+
+                    logger.info("集成应用启动成功（非独立模式）")
+                    return True
+                except Exception as e:
+                    error_reporter.report(
+                        "集成应用启动失败",
+                        e,
+                        {"service_name": service_name, "script": config["script"]}
+                    )
+                    return False
+            
+            # 其他服务使用subprocess启动
             process = subprocess.Popen(
                 [sys.executable, config["script"]],
                 cwd=Path(__file__).parent.parent,
@@ -377,6 +430,13 @@ class ServiceManager:
 
         logger.info(
             f"服务启动完成: {success_count}/{len(self.service_configs)} 个服务运行中")
+
+        # 启动统计服务
+        try:
+            self.stats_service.start_scheduler()
+            logger.info("统计服务启动成功")
+        except Exception as e:
+            error_reporter.report("统计服务启动失败", e)
 
         # 启动健康检查线程
         self.start_health_check()
