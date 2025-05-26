@@ -64,6 +64,12 @@
         "15",
         0
       ],
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      },
       "clip": [
         "2",
         0
@@ -76,7 +82,7 @@
   },
   "6": {
     "inputs": {
-      "noise_seed": 466676752105777
+      "noise_seed": 557640129189145
     },
     "class_type": "RandomNoise",
     "_meta": {
@@ -86,7 +92,7 @@
   "7": {
     "inputs": {
       "model": [
-        "1",
+        "36",
         0
       ],
       "conditioning": [
@@ -112,9 +118,9 @@
     "inputs": {
       "scheduler": "beta",
       "steps": 10,
-      "denoise": 0.25,
+      "denoise": 0.15000000000000002,
       "model": [
-        "1",
+        "36",
         0
       ]
     },
@@ -125,8 +131,7 @@
   },
   "10": {
     "inputs": {
-      "image": "RF_5.png",
-      "upload": "image"
+      "image": "rgthree.compare._temp_kpxjq_00005_.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -143,7 +148,13 @@
       "num_beams": 3,
       "do_sample": true,
       "output_mask_select": "",
-      "seed": 1113672588883970,
+      "seed": 850666358306145,
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      },
       "image": [
         "10",
         0
@@ -175,7 +186,7 @@
         "11",
         2
       ],
-      "text2": "The image is a portrait of a young woman with long dark hair, wearing a fur coat. She is standing in front of a beige background with a shadow of a person's head on the wall behind her. The woman is looking directly at the camera with a serious expression on her face. In the center of the image, there is a text written in a cursive font that reads \"Lita Thi\" in a golden color. The overall aesthetic is elegant and sophisticated."
+      "text2": "The image shows a young woman standing in front of a green brick wall with the word \"FORS\" written in white capital letters. She is wearing a green sleeveless top, white trousers, and black shoes. She has a pair of sunglasses on and is carrying a small green purse. The woman is standing on a sidewalk with a small table and benches in the background. She appears to be posing for a photo."
     },
     "class_type": "ShowText|pysssss",
     "_meta": {
@@ -286,7 +297,7 @@
       "tile_size": 1024,
       "overlap": 64,
       "temporal_size": 64,
-      "temporal_overlap": 8,
+      "temporal_overlap": 24,
       "samples": [
         "4",
         0
@@ -345,12 +356,12 @@
           {
             "name": "A",
             "selected": true,
-            "url": "/api/view?filename=rgthree.compare._temp_fxxnm_00003_.png&type=temp&subfolder=&rand=0.45710737213171404"
+            "url": "/api/view?filename=rgthree.compare._temp_isuvd_00011_.png&type=temp&subfolder=&rand=0.6906463516595859"
           },
           {
             "name": "B",
             "selected": true,
-            "url": "/api/view?filename=rgthree.compare._temp_fxxnm_00004_.png&type=temp&subfolder=&rand=0.2736169864931959"
+            "url": "/api/view?filename=rgthree.compare._temp_isuvd_00012_.png&type=temp&subfolder=&rand=0.5803287517765209"
           }
         ]
       },
@@ -411,6 +422,32 @@
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
+    }
+  },
+  "35": {
+    "inputs": {
+      "anything": [
+        "29",
+        0
+      ]
+    },
+    "class_type": "easy cleanGpuUsed",
+    "_meta": {
+      "title": "Clean VRAM Used"
+    }
+  },
+  "36": {
+    "inputs": {
+      "lora_name": "Flux\\SameFace_Fix.safetensors",
+      "strength_model": -0.6000000000000001,
+      "model": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoraLoaderModelOnly"
     }
   }
 }
