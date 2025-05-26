@@ -69,6 +69,12 @@ class ServiceManager:
                     "gradio_server.fill_replace_server_port", 7892)
             },
             {
+                "name": "人脸替换",
+                "script": "comfyui_gradio/services/swap_face.py",
+                "port": Config.get(
+                    "gradio_server.swap_face_server_port", 7893)
+            },
+            {
                 "name": "集成应用",
                 "script": "comfyui_gradio/app.py",
                 "port": Config.get("gradio_server.integrated_app_port", 7899)

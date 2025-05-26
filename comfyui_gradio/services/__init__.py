@@ -9,7 +9,8 @@ from comfyui_gradio.services import (
     image_upscale,
     manual_remove_object,
     remove_background,
-    remove_object
+    remove_object,
+    swap_face
 )
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     'image_upscale',
     'manual_remove_object',
     'remove_background',
-    'remove_object'
+    'remove_object',
+    'swap_face'
 ]

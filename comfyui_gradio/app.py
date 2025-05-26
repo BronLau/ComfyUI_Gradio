@@ -13,7 +13,7 @@ import gradio as gr
 from comfyui_gradio.config import Config
 from comfyui_gradio.services import (
     fill_repaint, fill_replace, image_extend, image_upscale,
-    manual_remove_object, remove_background, remove_object
+    manual_remove_object, remove_background, remove_object, swap_face
 )
 
 
@@ -47,6 +47,9 @@ def create_integrated_app():
 
             with gr.TabItem("物体替换"):
                 fill_replace.create_interface()
+
+            with gr.TabItem("人脸替换"):
+                swap_face.create_interface()
 
     return demo
 
