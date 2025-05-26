@@ -291,7 +291,7 @@ class DailyStats:
                     if len(start_date) == 10 and log_date < start_date:
                         continue
                     # 如果是YYYYMMDD格式的起始日期（用于匹配文件名中的日期）
-                    elif (len(start_date) == 8 and 
+                    elif (len(start_date) == 8 and
                           log_date.replace('-', '') < start_date):
                         continue
 
@@ -363,39 +363,39 @@ class DailyStats:
         """
         # 获取当前时间
         current_time = datetime.now().strftime('%H:%M:%S')
-        
+
         # 构建报告标题
         report = "# ComfyUI 每日使用统计\n\n"
-        
+
         # 统计日期和报告时间
         report += f"📅 统计日期：{stats['开始日期']} | 报告时间：{current_time}\n\n "
-        
+
         # 总处理量
         report += f"📊 总处理量：{stats['总调用次数']} 张图片\n\n"
-        
+
         # 添加分隔线
         report += "---\n\n"
-        
+
         # 功能使用详情
         report += "📈 功能使用详情\n\n"
-        
+
         # 收集有效的服务
         valid_services = []
         for service_name, service_stats in stats["服务统计"].items():
             if service_stats["调用次数"] > 0:
                 valid_services.append((service_name, service_stats))
-        
+
         # 如果没有任何服务被调用，显示提示信息
         if not valid_services:
             report += "• 今日无使用记录\n"
             return report
-        
+
         # 计算百分比
         total_calls = stats["总调用次数"]
-        
+
         # 按照中文服务名称排序
         valid_services.sort(key=lambda x: x[0])
-        
+
         # 生成报告条目
         for service_name, service_stats in valid_services:
             calls = service_stats["调用次数"]
