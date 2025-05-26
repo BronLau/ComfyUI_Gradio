@@ -11,7 +11,6 @@ sys.path.insert(0, root_dir)
 
 import gradio as gr
 from comfyui_gradio.config import Config
-from comfyui_gradio.utils.stats import UsageStats
 from comfyui_gradio.services import (
     fill_repaint, fill_replace, image_extend, image_upscale,
     manual_remove_object, remove_background, remove_object
@@ -52,26 +51,12 @@ def create_integrated_app():
     return demo
 
 
-def launch_app(is_standalone=True):
-    """启动集成应用
-    
-    Args:
-        is_standalone: 是否是独立运行模式，如果是由server.py调用则为False
-    """
+def launch_app():
+    """启动集成应用"""
     demo = create_integrated_app()
 
     # 从配置中获取端口，如果没有则使用默认值
     server_port = Config.get("gradio_server.integrated_app_port", 7899)
-
-    # 只有在独立运行模式下才启动统计服务
-    # 避免与server.py中的统计服务冲突
-    if is_standalone:
-        try:
-            stats_service = UsageStats()
-            stats_service.start_scheduler()
-            print("统计服务启动成功")
-        except Exception as e:
-            print(f"统计服务启动失败: {e}")
 
     demo.launch(
         share=Config.get("gradio_server.share"),
@@ -81,5 +66,4 @@ def launch_app(is_standalone=True):
 
 
 if __name__ == "__main__":
-    # 作为主程序运行时，使用独立模式
-    launch_app(is_standalone=True)
+    launch_app()

@@ -27,10 +27,3 @@ dingtalk:
   enabled: true
   webhook: "{REPLEASE_YOUR_WEBHOOK_ADDRESS}"
   secret: "{REPLEASE_YOUR_SECRET}"
-
-# 统计服务配置
-stats:
-  enabled: true  # 是否启用统计服务
-  report_time: "17:30"  # 每日报告发送时间
-  retry_count: 3  # 发送失败重试次数
-  retry_delay: 60  # 重试间隔时间(秒)
