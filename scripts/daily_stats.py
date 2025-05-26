@@ -6,6 +6,14 @@
 """
 
 # 必须先导入os和sys，然后添加项目根目录到Python路径，才能导入comfyui_gradio模块
+import os
+import sys
+
+# 添加项目根目录到Python路径
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, root_dir)
+
+# 现在导入其他模块
 from pathlib import Path
 from datetime import datetime, timedelta
 import re
@@ -16,12 +24,6 @@ import time
 from comfyui_gradio.utils.dingtalk import DingTalkBot
 # 未使用的导入
 # from comfyui_gradio.config import Config
-import os
-import sys
-
-# 添加项目根目录到Python路径
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, root_dir)
 
 # 现在可以导入comfyui_gradio模块
 
@@ -94,7 +96,8 @@ class DailyStats:
                 "手动蒙版物体移除": {"调用次数": 0, "成功次数": 0, "失败次数": 0},
                 "图片扩展": {"调用次数": 0, "成功次数": 0, "失败次数": 0},
                 "局部重绘": {"调用次数": 0, "成功次数": 0, "失败次数": 0},
-                "物体替换": {"调用次数": 0, "成功次数": 0, "失败次数": 0}
+                "物体替换": {"调用次数": 0, "成功次数": 0, "失败次数": 0},
+                "人脸替换": {"调用次数": 0, "成功次数": 0, "失败次数": 0}
             }
         }
 
@@ -108,6 +111,7 @@ class DailyStats:
             "extend": "图片扩展",
             "repaint": "局部重绘",
             "replace": "物体替换",
+            "swap-face": "人脸替换",
 
             # 新增映射 - 服务脚本日志
             "remove_background": "背景移除",
@@ -117,6 +121,7 @@ class DailyStats:
             "image_extend": "图片扩展",
             "fill_repaint": "局部重绘",
             "fill_replace": "物体替换",
+            "swap_face": "人脸替换",
 
             # 新增映射 - 带日期后缀的服务日志
             "rmbg-logs_": "背景移除",
@@ -125,7 +130,8 @@ class DailyStats:
             "manual-remove-object-logs_": "手动蒙版物体移除",
             "image-extend-logs_": "图片扩展",
             "local-repaint-logs_": "局部重绘",
-            "object-replace-logs_": "物体替换"
+            "object-replace-logs_": "物体替换",
+            "face-swap-logs_": "人脸替换"
         }
 
         # 创建请求跟踪字典，用于跟踪每个请求的状态
@@ -426,32 +432,72 @@ class DailyStats:
         except Exception as e:
             logger.error(f"发送每日报告失败，错误：{e}")
 
-    def run(self):
-        """运行每日统计服务"""
+    def run(self, debug=False):
+        """运行每日统计服务
+        
+        Args:
+            debug: 是否启用调试模式
+        """
         logger.info("每日统计服务启动...")
 
         # 设置定时任务，每个工作日17:30发送报告
-        schedule.every().monday.at("17:30").do(self.send_daily_report)
-        schedule.every().tuesday.at("17:30").do(self.send_daily_report)
-        schedule.every().wednesday.at("17:30").do(self.send_daily_report)
-        schedule.every().thursday.at("17:30").do(self.send_daily_report)
-        schedule.every().friday.at("17:30").do(self.send_daily_report)
+        for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']:
+            getattr(schedule.every(), day).at("17:45").do(
+                self.send_daily_report, debug=debug
+            )
+            if debug:
+                # 在调试模式下，也设置测试任务（每分钟检查一次）
+                getattr(schedule.every(), day).at(
+                    datetime.now().strftime("%H:%M") + ":30"
+                ).do(self.send_daily_report, debug=True)
 
-        logger.info("定时任务已设置，每个工作日17:30发送报告")
-
+        # 输出当前时间和星期几
+        now = datetime.now()
+        weekday = now.weekday()  # 0-6表示周一到周日
+        weekday_name = ['一', '二', '三', '四', '五', '六', '日'][weekday]
+        logger.info(f"当前时间：{now.strftime('%Y-%m-%d %H:%M:%S')}，星期{weekday_name}")
+        logger.info(f"定时任务已设置，每个工作日17:45发送报告，调试模式：{debug}")
+        
+        # 如果是工作日17:30以后且未到18:00，立即发送一次
+        if 0 <= weekday <= 4:  # 周一到周五
+            current_hour = now.hour
+            current_minute = now.minute
+            if (current_hour == 17 and current_minute >= 30) or debug:
+                logger.info("当前是工作日17:45后，立即发送报告")
+                self.send_daily_report(debug=debug)
+        
         # 运行定时任务
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # 每分钟检查一次
+        logger.info("开始监听定时任务...")
+        try:
+            while True:
+                schedule.run_pending()
+                time.sleep(30)  # 每30秒检查一次
+        except KeyboardInterrupt:
+            logger.info("服务被用户中断")
+        except Exception as e:
+            logger.error(f"服务运行异常：{e}")
+            raise
 
 
 def main():
     """主函数"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description='每日统计服务')
+    parser.add_argument('--debug', action='store_true', help='启用调试模式')
+    parser.add_argument('--force', action='store_true', help='强制立即发送报告')
+    args = parser.parse_args()
+
     # 创建每日统计服务
     stats_service = DailyStats()
 
-    # 运行服务
-    stats_service.run()
+    if args.force:
+        # 强制立即发送报告
+        logger.info("强制发送每日报告...")
+        stats_service.send_daily_report(debug=args.debug)
+    else:
+        # 正常运行服务
+        stats_service.run(debug=args.debug)
 
 
 if __name__ == '__main__':
