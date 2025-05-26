@@ -58,7 +58,7 @@ class DingTalkBot:
                 message = {
                     "msgtype": "markdown",
                     "markdown": {
-                        "title": "4090 ComfyUI 使用统计",
+                        "title": "ComfyUI 使用统计",
                         "text": content
                     }
                 }
